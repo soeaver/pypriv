@@ -5,14 +5,22 @@ import numpy as np
 
 this_file = inspect.getfile(inspect.currentframe())
 file_pth = os.path.abspath(os.path.dirname(this_file))
-sys.path.append(file_pth + '/../')
+sys.path.append(file_pth + '/../')  # path of pypriv
 import variable as V
 import transforms as T
 
+sys.path.append(file_pth + '/../../')   # path of py-RFCN-priv/lib 
 from utils.cython_bbox import bbox_overlaps
 from fast_rcnn.config import cfg
 
 
+class Classifier(object):
+    def __init__(self, net, class_num=1000, mean=(0.0, 0.0, 0.0), std=(1.0, 1.0, 1.0),
+                 base_size=256, crop_size=224, crop_type='center', image_flip=False, 
+                 prob_layer='prob', synet=None):
+        pass
+    
+    
 class Segmentor(object):
     def __init__(self, net, class_num=21, mean=(0.0, 0.0, 0.0), std=(1.0, 1.0, 1.0),
                  scales=(256, 384, 512, 640, 768, 1024), crop_size=513, image_flip=False, crf=None):
