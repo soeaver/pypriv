@@ -121,11 +121,11 @@ def over_sample(im, crop_size=224):  # 5 crops of image
     return sample_list
 
 
-def mirror_crop(im):  # 10 crops
+def mirror_crop(im, crop_size=224):  # 10 crops
     crop_list = []
     mirror = im[:, ::-1]
-    crop_list.extend(over_sample(im))
-    crop_list.extend(over_sample(mirror))
+    crop_list.extend(over_sample(im, crop_size=crop_size))
+    crop_list.extend(over_sample(mirror, crop_size=crop_size))
 
     return crop_list
 
