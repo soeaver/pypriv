@@ -1,19 +1,16 @@
 import inspect, os, sys
 import datetime
-
+import cv2
+import numpy as np
 
 this_file = inspect.getfile(inspect.currentframe())
 file_pth = os.path.abspath(os.path.dirname(this_file))
-
 sys.path.append(file_pth + '/../')
+import variable as V
+import transforms as T
 
-import cv2
-import numpy as np
 from utils.cython_bbox import bbox_overlaps
 from fast_rcnn.config import cfg
-import label_info
-
-import transforms as T
 
 
 class Segmentor(object):
