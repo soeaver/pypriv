@@ -17,7 +17,7 @@ from fast_rcnn.config import cfg
 class Classifier(object):
     def __init__(self, net, class_num=1000, mean=(0.0, 0.0, 0.0), std=(1.0, 1.0, 1.0),
                  base_size=256, crop_size=224, crop_type='center', image_flip=False, 
-                 prob_layer='prob', synet=None):
+                 prob_layer='prob', synset=None):
         pass
     
     
