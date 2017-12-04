@@ -125,7 +125,7 @@ class Segmentor(object):
 class Detector(object):
     def __init__(self, net, mean=(0.0, 0.0, 0.0), std=(1.0, 1.0, 1.0),
                  scales=(600,), max_sizes=(1000,), preN=6000, postN=300, conf_thresh=0.7,
-                 color_map=label_info.COLORMAP81, class_map=label_info.PERSON_CLASS):
+                 color_map=V.COLORMAP81, class_map=V.PERSON_CLASS):
         self.net = net
         self.mean = mean
         self.std = std
