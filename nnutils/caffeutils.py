@@ -8,23 +8,108 @@ file_pth = os.path.abspath(os.path.dirname(this_file))
 sys.path.append(file_pth + '/../')  # path of pypriv
 import variable as V
 import transforms as T
+import basicmath as M
 
-sys.path.append(file_pth + '/../../')   # path of py-RFCN-priv/lib 
+sys.path.append(file_pth + '/../../')  # path of py-RFCN-priv/lib
 from utils.cython_bbox import bbox_overlaps
 from fast_rcnn.config import cfg
 
 
-class Classifier(object):
-    def __init__(self, net, class_num=1000, mean=(0.0, 0.0, 0.0), std=(1.0, 1.0, 1.0),
-                 base_size=256, crop_size=224, crop_type='center', image_flip=False, 
-                 prob_layer='prob', synset=None):
-        pass
-    
-    
-class Segmentor(object):
-    def __init__(self, net, class_num=21, mean=(0.0, 0.0, 0.0), std=(1.0, 1.0, 1.0),
-                 scales=(256, 384, 512, 640, 768, 1024), crop_size=513, image_flip=False, crf=None):
+class CaffeInference(object):
+    def __init__(self, net):
         self.net = net
+
+    def inference(self, batch_ims, output_layer='prob'):
+        input_ims = batch_ims.transpose(0, 3, 1, 2)
+        self.net.blobs['data'].reshape(*input_ims.shape)
+        self.net.blobs['data'].data[...] = input_ims
+        self.net.forward()
+
+        return self.net.blobs[output_layer].data[...]
+
+
+class Classifier(CaffeInference):
+    def __init__(self, net, class_num=1000, mean=(0.0, 0.0, 0.0), std=(1.0, 1.0, 1.0),
+                 base_size=256, crop_size=224, crop_type='center', prob_layer='prob', synset=None):
+        CaffeInference.__init__(self, net)
+        self.class_num = class_num
+        self.mean = mean
+        self.std = std
+        self.base_size = base_size
+        self.crop_size = crop_size
+        self.crop_type = crop_type
+        self.prob_layer = prob_layer
+        self.synset = synset
+
+    def cls_im(self, im):
+        im = im.astype(np.float32, copy=True)
+        normalized_im = T.normalize(im, mean=self.mean, std=self.std)
+        scale_im = T.scale(normalized_im, short_size=self.base_size)
+        crop_ims = []
+        if self.crop_type == 'center' or self.crop_type == 'single':  # for single crop
+            crop_ims.append(T.center_crop(scale_im, crop_size=self.crop_size))
+        elif self.crop_type == 'mirror' or self.crop_type == 'multi':  # for 10 crops
+            crop_ims.extend(T.mirror_crop(scale_im, crop_size=self.crop_size))
+        else:
+            crop_ims.append(scale_im)
+
+        scores = self.inference(np.asarray(crop_ims, dtype=np.float32), output_layer=self.prob_layer)
+
+        return np.sum(scores, axis=0)
+
+    def cls_batch(self, batch_ims):
+        input_ims = []
+        for im in batch_ims:
+            im = im.astype(np.float32, copy=True)
+            normalized_im = T.normalize(im, mean=self.mean, std=self.std)
+            scale_im = T.scale(normalized_im, short_size=self.base_size)
+            input_ims.append(T.center_crop(scale_im, crop_size=self.crop_size))
+
+        scores = self.inference(np.asarray(input_ims, dtype=np.float32), output_layer=self.prob_layer)
+
+        return scores
+
+
+class Identity(Classifier):
+    def __init__(self, net, class_num=1000, mean=(0.0, 0.0, 0.0), std=(1.0, 1.0, 1.0),
+                 base_size=256, crop_size=224, crop_type='center', prob_layer='prob', gallery=None):
+        Classifier.__init__(self, net, class_num, mean, std, base_size, crop_size, crop_type, prob_layer)
+        self.gallery = gallery
+
+    def id_feature(self, im):
+        return self.cls_im(im)
+
+    def one2one_identity(self, im1, im2):
+        normalized_im1 = T.normalize(im1, mean=self.mean, std=self.std)
+        scale_im1 = T.scale(normalized_im1, short_size=self.base_size)
+        input_im1 = T.center_crop(scale_im1, crop_size=self.crop_size)
+
+        normalized_im2 = T.normalize(im2, mean=self.mean, std=self.std)
+        scale_im2 = T.scale(normalized_im2, short_size=self.base_size)
+        input_im2 = T.center_crop(scale_im2, crop_size=self.crop_size)
+
+        batch = np.asarray([input_im1, input_im2], dtype=np.float32)
+        scores = self.inference(batch, output_layer=self.prob_layer)
+
+        return M.cosine_similarity(scores[0], scores[1])
+
+    def one2n_identity(self, query, gallery=None):
+        if gallery is None:
+            gallery = self.gallery
+        else:
+            gallery = gallery
+        sims = []
+
+        for i in xrange(len(gallery)):
+            sims.append(M.cosine_similarity(query, gallery[i]))
+
+        return np.asarray(sims)
+
+
+class Segmentor(CaffeInference):
+    def __init__(self, net, class_num=21, mean=(0.0, 0.0, 0.0), std=(1.0, 1.0, 1.0),
+                 scales=(256, 384, 512, 640, 768, 1024), crop_size=512, image_flip=False, crf=None):
+        CaffeInference.__init__(self, net)
         self.class_num = class_num
         self.mean = mean
         self.std = std
@@ -36,8 +121,6 @@ class Segmentor(object):
         self.crf_factor = 1.0
         self.prob_layer = 'prob'
         self.stride_rate = 2 / 3.0
-        # self.color_map = color_map
-        # self.class_map = class_map
 
     def eval_im(self, im):
         im = im.astype(np.float32, copy=True)
@@ -74,9 +157,10 @@ class Segmentor(object):
         normalized_im = T.normalize(im, mean=self.mean, std=self.std)
         scale_im, scale_ratio = T.scale_by_max(normalized_im, long_size=self.crop_size)
         input_im = T.padding_im(scale_im, target_size=(self.crop_size, self.crop_size),
-                                borderType=cv2.BORDER_CONSTANT, borderValue=(0.0, 0.0, 0.0))
-        score = self.caffe_process(input_im)
-        score_map = cv2.resize(score, None, None, fx=1./scale_ratio, fy=1./scale_ratio)[:h, :w, :]
+                                borderType=cv2.BORDER_CONSTANT)
+        output = self.inference(np.asarray([input_im], dtype=np.float32))
+        score = output[0].transpose(1, 2, 0)
+        score_map = cv2.resize(score, None, None, fx=1. / scale_ratio, fy=1. / scale_ratio)[:h, :w, :]
 
         return score_map.argmax(2)
 
@@ -87,14 +171,15 @@ class Segmentor(object):
 
         if im_size_max <= self.crop_size:
             input_im = T.padding_im(scale_im, target_size=(self.crop_size, self.crop_size),
-                                    borderType=cv2.BORDER_CONSTANT, borderValue=(0.0, 0.0, 0.0))
-            score = self.caffe_process(input_im)[:h, :w, :]
+                                    borderType=cv2.BORDER_CONSTANT)
+            output = self.inference(np.asarray([input_im], dtype=np.float32))
+            score = output[0].transpose(1, 2, 0)[:h, :w, :]
         else:
             stride = np.ceil(self.crop_size * self.stride_rate)
             pad_im = scale_im
             if im_size_min < self.crop_size:
                 pad_im = T.padding_im(scale_im, target_size=(self.crop_size, self.crop_size),
-                                      borderType=cv2.BORDER_CONSTANT, borderValue=(0.0, 0.0, 0.0))
+                                      borderType=cv2.BORDER_CONSTANT)
 
             ph, pw = pad_im.shape[:2]
             h_grid = int(np.ceil(float(ph - self.crop_size) / stride)) + 1
@@ -112,20 +197,11 @@ class Segmentor(object):
                     sub_im = pad_im[s_y:e_y, s_x:e_x, :]
                     count_scale[s_y:e_y, s_x:e_x, :] += 1.0
                     input_im = T.padding_im(sub_im, target_size=(self.crop_size, self.crop_size),
-                                            borderType=cv2.BORDER_CONSTANT, borderValue=(0.0, 0.0, 0.0))
-                    data_scale[s_y:e_y, s_x:e_x, :] += self.caffe_process(input_im)
+                                            borderType=cv2.BORDER_CONSTANT)
+                    output = self.inference(np.asarray([input_im], dtype=np.float32))
+                    data_scale[s_y:e_y, s_x:e_x, :] += output[0].transpose(1, 2, 0)
             score = data_scale / count_scale
             score = score[:h, :w, :]
-
-        return score
-
-    def caffe_process(self, im):
-        input_im = im.transpose(2, 0, 1)
-        input_im = input_im.reshape((1,) + input_im.shape)
-        self.net.blobs['data'].reshape(*input_im.shape)
-        self.net.blobs['data'].data[...] = input_im
-        self.net.forward()
-        score = self.net.blobs[self.prob_layer].data[0].transpose(1, 2, 0)
 
         return score
 
@@ -300,7 +376,7 @@ def nms(dets, thresh):
     return keep
 
 
-def boxes_filter(dets, class_name, color, thresh=0.5):
+def boxes_filter(dets, class_name, color, thresh=0.5, min_size=(2, 2)):
     """Draw detected bounding boxes."""
     _objs = []
     inds = np.where(dets[:, -1] >= thresh)[0]
@@ -310,6 +386,9 @@ def boxes_filter(dets, class_name, color, thresh=0.5):
     for i in inds:
         bbox = dets[i, :4]
         score = dets[i, -1]
+        if bbox[3] - bbox[1] <= min_size[0] or bbox[2] - bbox[0] <= min_size[1]:
+            continue
         _objs.append(dict(bbox=bbox, score=score, class_name=class_name, color=color))
 
     return _objs
+

@@ -80,7 +80,7 @@ def salt_pepper(im, SNR=1.0):
     return noise_im
 
 
-def padding_im(im, target_size=(512, 512), borderType=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0), mode=0):
+def padding_im(im, target_size=(512, 512), borderType=cv2.BORDER_CONSTANT, mode=0):
     """ support gray im; target_size=(h, w); mode=0 left-top, mode=1 center; """
     if mode not in (0, 1):
         raise Exception("mode need to be one of 0 or 1, 0 for left-top mode, 1 for center mode.")
@@ -96,6 +96,22 @@ def padding_im(im, target_size=(512, 512), borderType=cv2.BORDER_CONSTANT, borde
         pad_im = cv2.copyMakeBorder(im, pad_h_top, pad_h_bottom, pad_w_left, pad_w_right, borderType)
 
     return pad_im
+
+
+def extend_bbox(im, bbox, margin=(0.5, 0.5, 0.5, 0.5)):
+    box_w = int(bbox[2] - bbox[0])
+    box_h = int(bbox[3] - bbox[1])
+
+    new_x1 = max(1, bbox[0] - margin[0] * box_w)
+    new_y1 = max(1, bbox[1] - margin[1] * box_h)
+    new_x2 = min(im.shape[1] - 1, bbox[2] + margin[2] * box_w)
+    new_y2 = min(im.shape[0] - 1, bbox[3] + margin[3] * box_h)
+
+    return np.asarray([new_x1, new_y1, new_x2, new_y2])
+
+
+def bbox_crop(im, bbox):
+    return im[int(bbox[1]):int(bbox[3]), int(bbox[0]):int(bbox[2])]
 
 
 def center_crop(im, crop_size=224):  # single crop
@@ -185,3 +201,4 @@ def multi_scale_by_max(im, scales=(480, 576, 688, 864, 1200), image_flip=False):
             scale_ratios.append(-scale_ratio)
 
     return scale_ims, scale_ratios
+
