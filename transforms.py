@@ -44,6 +44,16 @@ def scale_by_max(im, long_size=512, interp=cv2.INTER_LINEAR):
     return scale_im, scale_ratio
 
 
+def scale_by_target(im, target_size=(512, 256), interp=cv2.INTER_LINEAR):
+    """ target_size=(h, w), support gray im; interp: cv2.INTER_LINEAR (default) or cv2.INTER_NEAREST; """
+    min_factor = min(float(target_size[0]) / float(im.shape[0]),
+                     float(target_size[1]) / float(im.shape[1]))
+
+    scale_im = cv2.resize(im, None, None, fx=min_factor, fy=min_factor, interpolation=interp)
+
+    return scale_im, min_factor
+
+
 def rotate(im, angle=0, borderValue=(0, 0, 0), interp=cv2.INTER_LINEAR):
     """ support gray im; interp: cv2.INTER_LINEAR (default) or cv2.INTER_NEAREST; """
     h, w = im.shape[:2]
