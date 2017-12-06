@@ -228,7 +228,7 @@ class Detector(object):
     def det_im(self, im):
         im = im.astype(np.float32, copy=True)
         normalized_im = T.normalize(im, mean=self.mean, std=self.std)
-        scale_im, scale_ratio = T.scale(normalized_im, scales=self.scales[0], max_sizes=self.max_sizes[0])
+        scale_im, scale_ratio = T.scale(normalized_im, short_size=self.scales[0], max_size=self.max_sizes[0])
 
         input_data = scale_im.transpose(2, 0, 1)
         input_data = input_data.reshape((1,) + input_data.shape)
