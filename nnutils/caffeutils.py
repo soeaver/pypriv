@@ -228,15 +228,14 @@ class Detector(object):
     def det_im(self, im):
         im = im.astype(np.float32, copy=True)
         normalized_im = T.normalize(im, mean=self.mean, std=self.std)
-        scale_ims, scale_ratios = T.multi_scale(normalized_im, scales=self.scales, max_sizes=self.max_sizes,
-                                                image_flip=self.image_flip)
+        scale_im, scale_ratio = T.scale(normalized_im, scales=self.scales[0], max_sizes=self.max_sizes[0])
 
-        input_data = scale_ims[0].transpose(2, 0, 1)
+        input_data = scale_im.transpose(2, 0, 1)
         input_data = input_data.reshape((1,) + input_data.shape)
         self.net.blobs['data'].reshape(*input_data.shape)
         input_blob = {'data': input_data, 'rois': None}
 
-        input_blob['im_info'] = np.array([[scale_ims[0].shape[0], scale_ims[0].shape[1], 1.0]], dtype=np.float32)
+        input_blob['im_info'] = np.array([[scale_im.shape[0], scale_im.shape[1], 1.0]], dtype=np.float32)
         self.net.blobs['im_info'].reshape(*input_blob['im_info'].shape)
 
         # do forward
@@ -245,7 +244,7 @@ class Detector(object):
         output_blob = self.net.forward(**forward_kwargs)
 
         rois = self.net.blobs['rois'].data.copy()
-        boxes = rois[:, 1:5] / scale_ratios[0]
+        boxes = rois[:, 1:5]
 
         scores = output_blob['cls_prob']
         scores = scores.reshape(*scores.shape[:2])
@@ -254,7 +253,7 @@ class Detector(object):
         box_deltas = output_blob['bbox_pred']
         box_deltas = box_deltas.reshape(*box_deltas.shape[:2])
         pred_boxes = bbox_transform_inv(boxes, box_deltas)
-        pred_boxes = clip_boxes(pred_boxes, scale_ims[0].shape)
+        pred_boxes = clip_boxes(pred_boxes, scale_im.shape)
 
         objs = []
         for cls_ind, cls in enumerate(self.class_map[1:]):
@@ -273,7 +272,7 @@ class Detector(object):
             else:
                 VOTEed = dets_NMSed
 
-            _obj = boxes_filter(VOTEed, cls, self.color_map[cls_ind], thresh=self.conf_thresh)
+            _obj = boxes_filter(VOTEed, cls, self.color_map[cls_ind], scale=scale_ratio, thresh=self.conf_thresh)
             objs.extend(_obj)
 
         return objs
@@ -376,7 +375,7 @@ def nms(dets, thresh):
     return keep
 
 
-def boxes_filter(dets, class_name, color, thresh=0.5, min_size=(2, 2)):
+def boxes_filter(dets, class_name, color, scale=1.0, thresh=0.5, min_size=(2, 2)):
     """Draw detected bounding boxes."""
     _objs = []
     inds = np.where(dets[:, -1] >= thresh)[0]
@@ -384,7 +383,7 @@ def boxes_filter(dets, class_name, color, thresh=0.5, min_size=(2, 2)):
         return _objs
 
     for i in inds:
-        bbox = dets[i, :4]
+        bbox = dets[i, :4] / scale
         score = dets[i, -1]
         if bbox[3] - bbox[1] <= min_size[0] or bbox[2] - bbox[0] <= min_size[1]:
             continue
