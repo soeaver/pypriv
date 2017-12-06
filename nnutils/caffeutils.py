@@ -44,7 +44,7 @@ class Classifier(CaffeInference):
     def cls_im(self, im):
         im = im.astype(np.float32, copy=True)
         normalized_im = T.normalize(im, mean=self.mean, std=self.std)
-        scale_im = T.scale(normalized_im, short_size=self.base_size)
+        scale_im, scale_ratio = T.scale(normalized_im, short_size=self.base_size)
         crop_ims = []
         if self.crop_type == 'center' or self.crop_type == 'single':  # for single crop
             crop_ims.append(T.center_crop(scale_im, crop_size=self.crop_size))
@@ -62,7 +62,7 @@ class Classifier(CaffeInference):
         for im in batch_ims:
             im = im.astype(np.float32, copy=True)
             normalized_im = T.normalize(im, mean=self.mean, std=self.std)
-            scale_im = T.scale(normalized_im, short_size=self.base_size)
+            scale_im, scale_ratio = T.scale(normalized_im, short_size=self.base_size)
             input_ims.append(T.center_crop(scale_im, crop_size=self.crop_size))
 
         scores = self.inference(np.asarray(input_ims, dtype=np.float32), output_layer=self.prob_layer)
@@ -81,11 +81,11 @@ class Identity(Classifier):
 
     def one2one_identity(self, im1, im2):
         normalized_im1 = T.normalize(im1, mean=self.mean, std=self.std)
-        scale_im1 = T.scale(normalized_im1, short_size=self.base_size)
+        scale_im1, scale_ratio1 = T.scale(normalized_im1, short_size=self.base_size)
         input_im1 = T.center_crop(scale_im1, crop_size=self.crop_size)
 
         normalized_im2 = T.normalize(im2, mean=self.mean, std=self.std)
-        scale_im2 = T.scale(normalized_im2, short_size=self.base_size)
+        scale_im2, scale_ratio2 = T.scale(normalized_im2, short_size=self.base_size)
         input_im2 = T.center_crop(scale_im2, crop_size=self.crop_size)
 
         batch = np.asarray([input_im1, input_im2], dtype=np.float32)
