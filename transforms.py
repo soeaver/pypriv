@@ -31,7 +31,7 @@ def scale(im, short_size=256, max_size=1e5, interp=cv2.INTER_LINEAR):
 
     scale_im = cv2.resize(im, None, None, fx=scale_ratio, fy=scale_ratio, interpolation=interp)
 
-    return scale_im
+    return scale_im, scale_ratio
 
 
 def scale_by_max(im, long_size=512, interp=cv2.INTER_LINEAR):
