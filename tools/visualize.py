@@ -6,8 +6,11 @@ from PIL import Image, ImageDraw, ImageFont
 this_file = inspect.getfile(inspect.currentframe())
 file_pth = os.path.abspath(os.path.dirname(this_file))
 
-FONT0 = ImageFont.truetype(file_pth + '/../data/Arial.ttf', 20)
-FONT1 = cv2.FONT_HERSHEY_SIMPLEX
+FONT10 = ImageFont.truetype(file_pth + '/../data/Arial.ttf', 10)
+FONT15 = ImageFont.truetype(file_pth + '/../data/Arial.ttf', 15)
+FONT20 = ImageFont.truetype(file_pth + '/../data/Arial.ttf', 20)
+FONT30 = ImageFont.truetype(file_pth + '/../data/Arial.ttf', 30)
+CVFONT0 = cv2.FONT_HERSHEY_SIMPLEX
 
 
 def draw_bbox(im, objs, max_obj=100, draw_text=True):
@@ -18,12 +21,12 @@ def draw_bbox(im, objs, max_obj=100, draw_text=True):
         if draw_text:
             cv2.putText(im, '{:s} {:.3f}'.format(str(objs[i]['class_name']), objs[i]['score']),
                         (int(bbox[0] + 5), int(bbox[1] + 15)),
-                        FONT1, 0.5, objs[i]['color'], thickness=1)
+                        CVFONT0, 0.5, objs[i]['color'], thickness=1)
 
     return im
 
 
-def draw_fancybbox(im, objs, max_obj=100, alpha=0.4):
+def draw_fancybbox(im, objs, max_obj=100, alpha=0.4, attri=False):
     for i in xrange(min(len(objs), max_obj)):
         bbox = objs[i]['bbox']
         cv2.rectangle(im, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), objs[i]['color'], 2)
@@ -31,11 +34,23 @@ def draw_fancybbox(im, objs, max_obj=100, alpha=0.4):
 
         mask = Image.fromarray(im.copy())
         draw = ImageDraw.Draw(mask)
-        draw.rectangle((int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[1]) + 25), fill=tuple(objs[i]['color']))
-        draw.text((int(bbox[0] + 5), int(bbox[1])),
+        draw.rectangle((int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[1]) + 24), fill=tuple(objs[i]['color']))
+        draw.text((int(bbox[0] + 5), int(bbox[1]) + 2),
                   '{:s} {:.3f}'.format(str(objs[i]['class_name']), objs[i]['score']),
-                  fill=(255, 255, 255), font=FONT0)
-
+                  fill=(255, 255, 255), font=FONT20)
+        
+        if attri:
+            attri_keys = objs[i]['attri'].keys()
+            y_shift = min(im.shape[0] - (int(bbox[1]) + 25 + 25 * len(attri_keys)), 0)
+            # print y_shift
+            left_top = (int(bbox[0]) - 110, int(bbox[1]) + 25 + y_shift)
+            right_bottom = (int(bbox[0]) - 10, int(bbox[1]) + 25 + y_shift + 25 * len(attri_keys))
+            draw.rectangle((left_top[0], left_top[1], right_bottom[0], right_bottom[1]), fill=(32, 32, 32))
+            for j in xrange(len(attri_keys)):
+                draw.text((left_top[0] + 5, left_top[1] + 2 + j * 25),
+                          '{}: {}'.format(attri_keys[j], objs[i]['attri'][attri_keys[j]]),
+                          fill=(255, 255, 255), font=FONT15)
+                
         im = np.array(Image.blend(vis, mask, alpha))
 
     return im
@@ -43,7 +58,8 @@ def draw_fancybbox(im, objs, max_obj=100, alpha=0.4):
 
 def draw_mask(im, label, color_map, alpha=0.7):
     h, w = im.shape[:2]
-    color = np.zeros((h, w, 3), dtype=np.uint8)
+    color = im.astype(np.float32, copy=True)
+    # color = np.zeros((h, w, 3), dtype=np.uint8)
 
     category = np.unique(label)
 
