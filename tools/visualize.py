@@ -55,6 +55,58 @@ def draw_fancybbox(im, objs, max_obj=100, alpha=0.4, attri=False):
 
     return im
 
+def draw_fancybbox2(im, objs, max_obj=100, alpha=0.4, attri=False, line_factor=0.1):
+    for i in xrange(min(len(objs), max_obj)):
+        bbox = objs[i]['bbox']
+        base_line = max(1, min(int(bbox[2] - bbox[0]), int(bbox[3] - bbox[1])))
+        pts_left_top = np.array([[int(bbox[0]), int(bbox[1] + line_factor * base_line)],
+                                 [int(bbox[0]), int(bbox[1])],
+                                 [int(bbox[0] + line_factor * base_line), int(bbox[1])]], np.int32)
+        pts_right_top = np.array([[int(bbox[2] - line_factor * base_line), int(bbox[1])],
+                                  [int(bbox[2]), int(bbox[1])],
+                                  [int(bbox[2]), int(bbox[1] + line_factor * base_line)]], np.int32)
+        pts_right_bottom = np.array([[int(bbox[2]), int(bbox[3] - line_factor * base_line)],
+                                     [int(bbox[2]), int(bbox[3])],
+                                     [int(bbox[2] - line_factor * base_line), int(bbox[3])]], np.int32)
+        pts_left_bottom = np.array([[int(bbox[0] + line_factor * base_line), int(bbox[3])],
+                                    [int(bbox[0]), int(bbox[3])],
+                                    [int(bbox[0]), int(bbox[3] - line_factor * base_line)]], np.int32)
+        cv2.polylines(im, pts_left_top.reshape((1, -1, 1, 2)), False, (224, 224, 224),
+                      thickness=min(3, int(base_line / 10.0)))
+        cv2.polylines(im, pts_right_top.reshape((1, -1, 1, 2)), False, (224, 224, 224),
+                      thickness=min(3, int(base_line / 10.0)))
+        cv2.polylines(im, pts_right_bottom.reshape((1, -1, 1, 2)), False, (224, 224, 224),
+                      thickness=min(3, int(base_line / 10.0)))
+        cv2.polylines(im, pts_left_bottom.reshape((1, -1, 1, 2)), False, (224, 224, 224),
+                      thickness=min(3, int(base_line / 10.0)))
+        cv2.rectangle(im, (int(bbox[0] + 5), int(bbox[1] + 5)), (int(bbox[2] - 5), int(bbox[3] - 5)),
+                      (224, 224, 224), 1)
+        vis = Image.fromarray(im)
+
+        mask = Image.fromarray(im.copy())
+        draw = ImageDraw.Draw(mask)
+        draw.rectangle((int(bbox[0] + 5), int(bbox[1] + 5),
+                        int(bbox[2] - 5), int(bbox[1] + 30)),
+                       fill=(32, 32, 32))
+        draw.text((int(bbox[0] + 10), int(bbox[1]) + 7),
+                  '{:s} {:.3f}'.format(str(objs[i]['class_name']), objs[i]['score']),
+                  fill=(255, 255, 255), font=FONT20)
+        if attri:
+            attri_keys = objs[i]['attri'].keys()
+            y_shift = min(im.shape[0] - (int(bbox[1]) + 25 + 25 * len(attri_keys)), 0)
+            print y_shift
+            left_top = (int(bbox[0]) - 110, int(bbox[1]) + 25 + y_shift)
+            right_bottom = (int(bbox[0]) - 10, int(bbox[1]) + 25 + y_shift + 25 * len(attri_keys))
+            draw.rectangle((left_top[0], left_top[1], right_bottom[0], right_bottom[1]), fill=(32, 32, 32))
+            for j in xrange(len(attri_keys)):
+                draw.text((left_top[0] + 5, left_top[1] + 2 + j * 25),
+                          '{}: {}'.format(attri_keys[j], objs[i]['attri'][attri_keys[j]]),
+                          fill=(255, 255, 255), font=FONT15)
+
+        im = np.array(Image.blend(vis, mask, alpha))
+
+    return im
+
 
 def draw_mask(im, label, color_map, alpha=0.7):
     h, w = im.shape[:2]
