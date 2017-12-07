@@ -151,7 +151,7 @@ def draw_pose_kpts(im, kpts, color_map, link_pair):
     return im
 
 
-def draw_kpts(im, kpts):
+def draw_face68_kpts(im, kpts):
     links = [[0, 16], [17, 21], [22, 26], [27, 30], [31, 35], [36, 41], [42, 47], [48, 59], [60, 67]]
     if kpts is None:
         return im
