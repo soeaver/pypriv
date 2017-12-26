@@ -54,10 +54,10 @@ def scale_by_target(im, target_size=(512, 256), interp=cv2.INTER_LINEAR):
     return scale_im, min_factor
 
 
-def rotate(im, angle=0, borderValue=(0, 0, 0), interp=cv2.INTER_LINEAR):
+def rotate(im, degree=0, borderValue=(0, 0, 0), interp=cv2.INTER_LINEAR):
     """ support gray im; interp: cv2.INTER_LINEAR (default) or cv2.INTER_NEAREST; """
     h, w = im.shape[:2]
-    rotate_mat = cv2.getRotationMatrix2D((w / 2, h / 2), angle, 1)
+    rotate_mat = cv2.getRotationMatrix2D((w / 2, h / 2), degree, 1)
     rotation = cv2.warpAffine(im, rotate_mat, (w, h), flags=interp,
                               borderValue=cv2.cv.Scalar(borderValue[0], borderValue[1], borderValue[2]))
 
