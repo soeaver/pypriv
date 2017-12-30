@@ -100,7 +100,7 @@ def eval_batch():
     for i in xrange(eval_len - args.skip_num):
         im = cv2.imread(SET_DICT[i + args.skip_num]['path'])
         normalized_im = T.normalize(im, mean=PIXEL_MEANS, std=PIXEL_STDS)
-        scale_im = T.scale(normalized_im, short_size=args.base_size)
+        scale_im, _ = T.scale(normalized_im, short_size=args.base_size)
         crop_ims = []
         if args.crop_type == 'center':  # for single crop
             crop_ims.append(T.center_crop(scale_im, crop_size=args.crop_size))
