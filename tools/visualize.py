@@ -11,6 +11,12 @@ FONT15 = ImageFont.truetype(file_pth + '/../data/Arial.ttf', 15)
 FONT20 = ImageFont.truetype(file_pth + '/../data/Arial.ttf', 20)
 FONT30 = ImageFont.truetype(file_pth + '/../data/Arial.ttf', 30)
 CVFONT0 = cv2.FONT_HERSHEY_SIMPLEX
+CVFONT1 = cv2.FONT_HERSHEY_PLAIN
+
+
+def draw_str(dst, (x, y), s):
+    cv2.putText(dst, s, (x + 1, y + 1), CVFONT1, 1.0, (0, 0, 0), thickness=2, lineType=cv2.LINE_AA)
+    cv2.putText(dst, s, (x, y), CVFONT1, 1.0, (255, 255, 255), lineType=cv2.LINE_AA)
 
 
 def draw_bbox(im, objs, max_obj=100, draw_text=True):
