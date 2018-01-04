@@ -42,7 +42,6 @@ def draw_fancybbox(im, objs, max_obj=100, alpha=0.4, attri=False):
         if attri:
             attri_keys = objs[i]['attri'].keys()
             y_shift = min(im.shape[0] - (int(bbox[1]) + 25 + 25 * len(attri_keys)), 0)
-            # print y_shift
             left_top = (int(bbox[0]) - 110, int(bbox[1]) + 25 + y_shift)
             right_bottom = (int(bbox[0]) - 10, int(bbox[1]) + 25 + y_shift + 25 * len(attri_keys))
             draw.rectangle((left_top[0], left_top[1], right_bottom[0], right_bottom[1]), fill=(32, 32, 32))
