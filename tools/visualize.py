@@ -21,7 +21,7 @@ def draw_str(dst, (x, y), s):
 
 
 def draw_bbox(im, objs, max_obj=100, draw_text=True):
-    im = im.astype(np.float32, copy=True)
+    # im = im.astype(np.float32, copy=True)
     for i in xrange(min(len(objs), max_obj)):
         bbox = objs[i]['bbox']
         cv2.rectangle(im, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), objs[i]['color'], 2)
