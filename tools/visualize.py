@@ -34,18 +34,18 @@ def draw_bbox(im, objs, max_obj=100, draw_text=True):
 
 
 def draw_fancybbox(im, objs, max_obj=100, alpha=0.4, attri=False):
+    vis = Image.fromarray(im)
+    draw1 = ImageDraw.Draw(vis)
+    mask = Image.fromarray(im.copy())
+    draw2 = ImageDraw.Draw(mask)
     for i in xrange(min(len(objs), max_obj)):
         bbox = objs[i]['bbox']
-        cv2.rectangle(im, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), objs[i]['color'], 2)
-        vis = Image.fromarray(im)
+        draw1.rectangle((int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])), outline=tuple(objs[i]['color']))
+        draw2.rectangle((int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[1]) + 24), fill=tuple(objs[i]['color']))
+        draw2.text((int(bbox[0] + 5), int(bbox[1]) + 2),
+                   '{:s} {:.3f}'.format(str(objs[i]['class_name']), objs[i]['score']),
+                   fill=(255, 255, 255), font=FONT20)
 
-        mask = Image.fromarray(im.copy())
-        draw = ImageDraw.Draw(mask)
-        draw.rectangle((int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[1]) + 24), fill=tuple(objs[i]['color']))
-        draw.text((int(bbox[0] + 5), int(bbox[1]) + 2),
-                  '{:s} {:.3f}'.format(str(objs[i]['class_name']), objs[i]['score']),
-                  fill=(255, 255, 255), font=FONT20)
-        
         if attri:
             attri_keys = objs[i]['attri'].keys()
             y_shift = min(im.shape[0] - (int(bbox[1]) + 25 + 25 * len(attri_keys)), 0)
@@ -56,10 +56,9 @@ def draw_fancybbox(im, objs, max_obj=100, alpha=0.4, attri=False):
                 draw.text((left_top[0] + 5, left_top[1] + 2 + j * 25),
                           '{}: {}'.format(attri_keys[j], objs[i]['attri'][attri_keys[j]]),
                           fill=(255, 255, 255), font=FONT15)
-                
-        im = np.array(Image.blend(vis, mask, alpha))
 
-    return im
+    return np.array(Image.blend(vis, mask, alpha))
+
 
 def draw_fancybbox2(im, objs, max_obj=100, alpha=0.4, attri=False, line_factor=0.1):
     for i in xrange(min(len(objs), max_obj)):
