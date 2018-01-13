@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(description='Evaluat the imagenet validation',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument('--gpu_mode', type=bool, default=True, help='whether use gpu')
-parser.add_argument('--gpu_id', type=int, default=0, help='gpi id for evaluation')
+parser.add_argument('--gpu_id', type=int, default=0, help='gpu id for evaluation')
 parser.add_argument('--data_root', type=str, default=ROOT_PTH + '/Database/ILSVRC2017',
                     help='Path to imagenet validation path')
 parser.add_argument('--val_file', type=str, default=ROOT_PTH + '/Program/caffe-model/cls/ILSVRC2012_val_norm.txt',
