@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from PIL import Image
 
 
 def bgr2rgb(im):
@@ -211,4 +212,22 @@ def multi_scale_by_max(im, scales=(480, 576, 688, 864, 1200), image_flip=False):
             scale_ratios.append(-scale_ratio)
 
     return scale_ims, scale_ratios
+
+
+def pil_scale(im, size, interpolation=Image.BILINEAR):
+    if isinstance(size, int):
+        w, h = im.size
+        if (w <= h and w == size) or (h <= w and h == size):
+            return im
+        if w < h:
+            ow = size
+            oh = int(size * h / w)
+            return im.resize((ow, oh), interpolation)
+        else:
+            oh = size
+            ow = int(size * w / h)
+            return im.resize((ow, oh), interpolation)
+    else:
+        return im.resize(size[::-1], interpolation)
+    
 
