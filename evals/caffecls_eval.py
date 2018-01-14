@@ -19,17 +19,16 @@ parser = argparse.ArgumentParser(description='Evaluat the imagenet validation',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument('--gpu_mode', type=bool, default=True, help='whether use gpu')
-parser.add_argument('--gpu_id', type=int, default=0, help='gpu id for evaluation')
-parser.add_argument('--data_root', type=str, default=ROOT_PTH + '/Database/ILSVRC2017',
-                    help='Path to imagenet validation path')
-parser.add_argument('--val_file', type=str, default=ROOT_PTH + '/Program/caffe-model/cls/ILSVRC2012_val_norm.txt',
-                    help='val_file')
-parser.add_argument('--model_weights', type=str,
-                    default=ROOT_PTH + '/Program/caffe-model/cls/resnet/resnet18-1x64d/resnet18-1x64d-merge.caffemodel',
-                    help='model weights')
-parser.add_argument('--model_deploy', type=str,
-                    default=ROOT_PTH + '/Program/caffe-model/cls/resnet/resnet18-1x64d/deploy_resnet18-1x64d-merge.prototxt',
-                    help='model_deploy')
+parser.add_argument('--gpu_id', type=int, help='gpu id for evaluation',
+                    default=0)
+parser.add_argument('--data_root', type=str, help='Path to imagenet validation',
+                    default=ROOT_PTH + '/Database/ILSVRC2017')
+parser.add_argument('--val_file', type=str, help='val_file',    # 2015 for senet and inception-v3
+                    default=ROOT_PTH + '/Program/caffe-model/cls/ILSVRC2012_val_norm.txt')
+parser.add_argument('--model_weights', type=str, help='model weights',
+                    default=ROOT_PTH + '/Program/caffe-model/cls/resnet/resnet18-1x64d/resnet18-1x64d-merge.caffemodel')
+parser.add_argument('--model_deploy', type=str, help='model_deploy', 
+                    default=ROOT_PTH + '/Program/caffe-model/cls/resnet/resnet18-1x64d/deploy_resnet18-1x64d-merge.prototxt')
 
 parser.add_argument('--ground_truth', type=bool, default=True, help='whether provide gt labels')
 parser.add_argument('--prob_layer', type=str, default='prob', help='prob layer name')
@@ -46,15 +45,16 @@ parser.add_argument('--save_score_vec', type=bool, default=False, help='whether 
 args = parser.parse_args()
 
 # ------------------ MEAN ---------------------
-# PIXEL_MEANS = np.array([0.0, 0.0, 0.0])  # for resnet10
-# PIXEL_MEANS = np.array([104.0, 117.0, 123.0])  # for resnet_v1/resnet_custom
-PIXEL_MEANS = np.array([103.52, 116.28, 123.675])  # for resnext/wrn/densenet
+PIXEL_MEANS = np.array([103.52, 116.28, 123.675])  # for model convert from torch/pytorch
+# PIXEL_MEANS = np.array([104.0, 117.0, 123.0])  # for resnet_v1, senet
+# PIXEL_MEANS = np.array([104.0, 117.0, 124.0])  # for dpn
 # PIXEL_MEANS = np.array([128.0, 128.0, 128.0])  # for inception_v3/v4/inception_resnet_v2
 # PIXEL_MEANS = np.array([102.98, 115.947, 122.772])  # for resnet101(152,269)_v2
 # ------------------ STD ---------------------
-PIXEL_STDS = np.array([57.375, 57.12, 58.395])  # for resnext/wrn/densenet
+PIXEL_STDS = np.array([57.375, 57.12, 58.395])  # for model convert from torch/pytorch
+# PIXEL_STDS = np.array([1.0, 1.0, 1.0])  # for resnet_v1, resnet101(152,269)_v2, senet
+# PIXEL_STDS = np.array([59.88, 59.88, 59.88])  # for dpn
 # PIXEL_STDS = np.array([128.0, 128.0, 128.0])  # for inception_v3/v4/inception_resnet_v2
-# PIXEL_STDS = np.array([1.0, 1.0, 1.0])  # for resnet101(152,269)_v2, resnet10, resnet_v1/resnet_custom
 # ---------------------------------------
 
 if args.gpu_mode:
@@ -92,6 +92,7 @@ def shuffle_conv1_channel():
 
 
 def eval_batch():
+    # shuffle_conv1_channel()
     eval_len = len(SET_DICT)
     # eval_len = 1000
     accuracy = np.zeros(len(args.top_k))
@@ -99,15 +100,20 @@ def eval_batch():
 
     for i in xrange(eval_len - args.skip_num):
         im = cv2.imread(SET_DICT[i + args.skip_num]['path'])
-        normalized_im = T.normalize(im, mean=PIXEL_MEANS, std=PIXEL_STDS)
-        scale_im, _ = T.scale(normalized_im, short_size=args.base_size)
+        if (PIXEL_MEANS == np.array([103.52, 116.28, 123.675])).all() and \
+                (PIXEL_STDS == np.array([57.375, 57.12, 58.395])).all():
+            scale_im = T.pil_scale(Image.fromarray(im), args.base_size)
+            scale_im = np.asarray(scale_im)
+        else:
+            scale_im, _ = T.scale(im, short_size=args.base_size) 
+        input_im = T.normalize(scale_im, mean=PIXEL_MEANS, std=PIXEL_STDS)
         crop_ims = []
         if args.crop_type == 'center':  # for single crop
-            crop_ims.append(T.center_crop(scale_im, crop_size=args.crop_size))
+            crop_ims.append(T.center_crop(input_im, crop_size=args.crop_size))
         elif args.crop_type == 'multi':  # for 10 crops
-            crop_ims.extend(T.mirror_crop(scale_im, crop_size=args.crop_size))
+            crop_ims.extend(T.mirror_crop(input_im, crop_size=args.crop_size))
         else:
-            crop_ims.append(scale_im)
+            crop_ims.append(input_im)
 
         score_vec = np.zeros(args.class_num, dtype=np.float32)
         iter_num = int(len(crop_ims) / args.batch_size)
