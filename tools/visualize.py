@@ -51,9 +51,9 @@ def draw_fancybbox(im, objs, max_obj=100, alpha=0.4, attri=False):
             y_shift = min(im.shape[0] - (int(bbox[1]) + 25 + 25 * len(attri_keys)), 0)
             left_top = (int(bbox[0]) - 110, int(bbox[1]) + 25 + y_shift)
             right_bottom = (int(bbox[0]) - 10, int(bbox[1]) + 25 + y_shift + 25 * len(attri_keys))
-            draw.rectangle((left_top[0], left_top[1], right_bottom[0], right_bottom[1]), fill=(32, 32, 32))
+            draw1.rectangle((left_top[0], left_top[1], right_bottom[0], right_bottom[1]), fill=(32, 32, 32))
             for j in xrange(len(attri_keys)):
-                draw.text((left_top[0] + 5, left_top[1] + 2 + j * 25),
+                draw1.text((left_top[0] + 5, left_top[1] + 2 + j * 25),
                           '{}: {}'.format(attri_keys[j], objs[i]['attri'][attri_keys[j]]),
                           fill=(255, 255, 255), font=FONT15)
 
