@@ -60,7 +60,7 @@ def rotate(im, degree=0, borderValue=(0, 0, 0), interp=cv2.INTER_LINEAR):
     h, w = im.shape[:2]
     rotate_mat = cv2.getRotationMatrix2D((w / 2, h / 2), degree, 1)
     rotation = cv2.warpAffine(im, rotate_mat, (w, h), flags=interp,
-                              borderValue=cv2.cv.Scalar(borderValue[0], borderValue[1], borderValue[2]))
+                              borderValue=[int(borderValue[0]), int(borderValue[1]), int(borderValue[2])])
 
     return rotation
 
