@@ -174,8 +174,8 @@ PERSON_CLASS = ('__background__',  # always index 0
 HAND_CLASS = ('__background__',  # always index 0
               'hand')
 
-HAND2_CLASS = ('__background__',  # always index 0
-               'face', 'hand')
+PERSONPART_CLASS = ('__background__',  # always index 0
+                    'person', 'face', 'hand')
 
 VEHICLE_CLASS = ('__background__',  # always index 0
                  'car', 'bus', 'truck', 'motorcycle', 'bicycle')
