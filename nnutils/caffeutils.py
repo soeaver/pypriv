@@ -9,6 +9,7 @@ sys.path.append(file_pth + '/../')  # path of pypriv
 import variable as V
 import transforms as T
 import basicmath as M
+from misc import *
 
 sys.path.append(file_pth + '/../../../caffe-priv/python')  # path of py-RFCN-priv/caffe-priv/python
 sys.path.append(file_pth + '/../../')  # path of py-RFCN-priv/lib
@@ -208,8 +209,8 @@ class Segmentor(CaffeInference):
 
 
 class Detector(object):
-    def __init__(self, net, mean=(0.0, 0.0, 0.0), std=(1.0, 1.0, 1.0),
-                 scales=(600,), max_sizes=(1000,), preN=6000, postN=300, conf_thresh=0.7,
+    def __init__(self, net, mean=(0.0, 0.0, 0.0), std=(1.0, 1.0, 1.0), agnostic=True,
+                 scales=(600,), max_sizes=(1000,), preN=6000, postN=300, nms_thresh=0.3, conf_thresh=0.7,
                  color_map=V.COLORMAP81, class_map=V.PERSON_CLASS):
         self.net = net
         self.mean = mean
@@ -217,11 +218,12 @@ class Detector(object):
         self.scales = scales
         self.max_sizes = max_sizes
         self.image_flip = False
-        self.nms_thresh = 0.3
+        self.nms_thresh = nms_thresh
         self.box_vote = False
         self.conf_thresh = conf_thresh
         self.color_map = color_map
         self.class_map = class_map
+        cfg.TEST.AGNOSTIC = agnostic
         cfg.TEST.RPN_PRE_NMS_TOP_N = preN
         cfg.TEST.RPN_POST_NMS_TOP_N = postN
         cfg.USE_GPU_NMS = False
@@ -259,10 +261,12 @@ class Detector(object):
         objs = []
         for cls_ind, cls in enumerate(self.class_map[1:]):
             cls_ind += 1  # because we skipped background
-            cls_boxes = pred_boxes[:, 4:8]
+            if cfg.TEST.AGNOSTIC:
+                cls_boxes = pred_boxes[:, 4:8]
+            else:
+                cls_boxes = pred_boxes[:, cls_ind * 4:(cls_ind + 1) * 4]
             cls_scores = scores[:, cls_ind]
-            dets = np.hstack((cls_boxes,
-                              cls_scores[:, np.newaxis])).astype(np.float32)
+            dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])).astype(np.float32)
             inds = np.where(dets[:, 4] > self.conf_thresh)
             cls_dets = dets[inds]
 
@@ -273,51 +277,11 @@ class Detector(object):
             else:
                 VOTEed = dets_NMSed
 
-            _obj = boxes_filter(VOTEed, cls, self.color_map[cls_ind], scale=scale_ratio, thresh=self.conf_thresh)
+            _obj = boxes_filter(VOTEed, bbox_id=cls_ind, class_name=cls, color=self.color_map[cls_ind],
+                                scale=scale_ratio, thresh=self.conf_thresh)
             objs.extend(_obj)
 
         return objs
-
-
-def bbox_transform_inv(boxes, deltas):
-    if boxes.shape[0] == 0:
-        return np.zeros((0, deltas.shape[1]), dtype=deltas.dtype)
-
-    boxes = boxes.astype(deltas.dtype, copy=False)
-
-    widths = boxes[:, 2] - boxes[:, 0] + 1.0
-    heights = boxes[:, 3] - boxes[:, 1] + 1.0
-    ctr_x = boxes[:, 0] + 0.5 * widths
-    ctr_y = boxes[:, 1] + 0.5 * heights
-
-    dx = deltas[:, 0::4]
-    dy = deltas[:, 1::4]
-    dw = deltas[:, 2::4]
-    dh = deltas[:, 3::4]
-
-    pred_ctr_x = dx * widths[:, np.newaxis] + ctr_x[:, np.newaxis]
-    pred_ctr_y = dy * heights[:, np.newaxis] + ctr_y[:, np.newaxis]
-    pred_w = np.exp(dw) * widths[:, np.newaxis]
-    pred_h = np.exp(dh) * heights[:, np.newaxis]
-
-    pred_boxes = np.zeros(deltas.shape, dtype=deltas.dtype)
-    pred_boxes[:, 0::4] = pred_ctr_x - 0.5 * pred_w  # x1
-    pred_boxes[:, 1::4] = pred_ctr_y - 0.5 * pred_h  # y1
-    pred_boxes[:, 2::4] = pred_ctr_x + 0.5 * pred_w  # x2
-    pred_boxes[:, 3::4] = pred_ctr_y + 0.5 * pred_h  # y2
-
-    return pred_boxes
-
-
-def clip_boxes(boxes, im_shape):
-    """
-    Clip boxes to image boundaries.
-    """
-    boxes[:, 0::4] = np.maximum(np.minimum(boxes[:, 0::4], im_shape[1] - 1), 0)  # x1 >= 0
-    boxes[:, 1::4] = np.maximum(np.minimum(boxes[:, 1::4], im_shape[0] - 1), 0)  # y1 >= 0
-    boxes[:, 2::4] = np.maximum(np.minimum(boxes[:, 2::4], im_shape[1] - 1), 0)  # x2 < im_shape[1]
-    boxes[:, 3::4] = np.maximum(np.minimum(boxes[:, 3::4], im_shape[0] - 1), 0)  # y2 < im_shape[0]
-    return boxes
 
 
 def bbox_vote(dets_NMS, dets_all, thresh=0.5):
@@ -341,54 +305,3 @@ def bbox_vote(dets_NMS, dets_all, thresh=0.5):
         dets_voted[i][4] = det[4]  # Keep the original score
 
     return dets_voted
-
-
-def nms(dets, thresh):
-    if dets.shape[0] == 0:
-        return []
-    """Pure Python NMS baseline."""
-    x1 = dets[:, 0]
-    y1 = dets[:, 1]
-    x2 = dets[:, 2]
-    y2 = dets[:, 3]
-    scores = dets[:, 4]
-
-    areas = (x2 - x1 + 1) * (y2 - y1 + 1)
-    order = scores.argsort()[::-1]
-
-    keep = []
-    while order.size > 0:
-        i = order[0]
-        keep.append(i)
-        xx1 = np.maximum(x1[i], x1[order[1:]])
-        yy1 = np.maximum(y1[i], y1[order[1:]])
-        xx2 = np.minimum(x2[i], x2[order[1:]])
-        yy2 = np.minimum(y2[i], y2[order[1:]])
-
-        w = np.maximum(0.0, xx2 - xx1 + 1)
-        h = np.maximum(0.0, yy2 - yy1 + 1)
-        inter = w * h
-        ovr = inter / (areas[i] + areas[order[1:]] - inter)
-
-        inds = np.where(ovr <= thresh)[0]
-        order = order[inds + 1]
-
-    return keep
-
-
-def boxes_filter(dets, class_name, color, scale=1.0, thresh=0.5, min_size=(2, 2)):
-    """Draw detected bounding boxes."""
-    _objs = []
-    inds = np.where(dets[:, -1] >= thresh)[0]
-    if len(inds) == 0:
-        return _objs
-
-    for i in inds:
-        bbox = dets[i, :4] / scale
-        score = dets[i, -1]
-        if bbox[3] - bbox[1] <= min_size[0] or bbox[2] - bbox[0] <= min_size[1]:
-            continue
-        _objs.append(dict(bbox=bbox, score=score, class_name=class_name, color=color))
-
-    return _objs
-
