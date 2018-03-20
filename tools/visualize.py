@@ -131,7 +131,7 @@ def draw_mask(im, label, color_map, alpha=0.7):
     return np.array(mask)
 
 
-def draw_pose_kpts(im, kpts, color_map, link_pair):
+def draw_pose_kpts(im, kpts, color_map, link_pair, thresh=0):
     part_size = min(int(min(im.shape[:2]) / 100), 3)
     if kpts is None:
         return im
@@ -143,7 +143,13 @@ def draw_pose_kpts(im, kpts, color_map, link_pair):
 
     for i in xrange(p_num):
         for j, link in enumerate(link_pair):
-            if kpts[i][link[0]][2] * kpts[i][link[1]][2] == 0:
+            if thresh > 0:
+                k1 = 0 if kpts[i][link[0]][2] < thresh else 1
+                k2 = 0 if kpts[i][link[1]][2] < thresh else 1
+            else:
+                k1 = kpts[i][link[0]][2]
+                k2 = kpts[i][link[1]][2]
+            if k1 * k2 == 0:
                 continue
             cur_im = im.copy()
             mX = float(kpts[i][link[0]][0] * 0.5 + kpts[i][link[1]][0] * 0.5)
