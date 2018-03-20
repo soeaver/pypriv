@@ -24,11 +24,12 @@ def draw_bbox(im, objs, max_obj=100, draw_text=True):
     # im = im.astype(np.float32, copy=True)
     for i in xrange(min(len(objs), max_obj)):
         bbox = objs[i]['bbox']
+        color = objs[i]['attribute']['color']
+        class_name = objs[i]['attribute']['class_name']
         cv2.rectangle(im, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), objs[i]['color'], 2)
         if draw_text:
-            cv2.putText(im, '{:s} {:.3f}'.format(str(objs[i]['class_name']), objs[i]['score']),
-                        (int(bbox[0] + 5), int(bbox[1] + 15)),
-                        CVFONT0, 0.5, objs[i]['color'], thickness=1)
+            cv2.putText(im, '{:s} {:.3f}'.format(str(class_name), color),
+                        (int(bbox[0] + 5), int(bbox[1] + 15)), CVFONT0, 0.5, color, thickness=1)
 
     return im
 
@@ -40,21 +41,22 @@ def draw_fancybbox(im, objs, max_obj=100, alpha=0.4, attri=False):
     draw2 = ImageDraw.Draw(mask)
     for i in xrange(min(len(objs), max_obj)):
         bbox = objs[i]['bbox']
-        draw1.rectangle((int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])), outline=tuple(objs[i]['color']))
-        draw2.rectangle((int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[1]) + 24), fill=tuple(objs[i]['color']))
+        color = objs[i]['attribute']['color']
+        class_name = objs[i]['attribute']['class_name']
+        draw1.rectangle((int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])), outline=tuple(color))
+        draw2.rectangle((int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[1]) + 24), fill=tuple(color))
         draw2.text((int(bbox[0] + 5), int(bbox[1]) + 2),
-                   '{:s} {:.3f}'.format(str(objs[i]['class_name']), objs[i]['score']),
-                   fill=(255, 255, 255), font=FONT20)
+                   '{:s} {:.3f}'.format(str(class_name), color), fill=(255, 255, 255), font=FONT20)
 
         if attri:
-            attri_keys = objs[i]['attri'].keys()
+            attri_keys = objs[i]['attribute']['attri'].keys()
             y_shift = min(im.shape[0] - (int(bbox[1]) + 25 + 25 * len(attri_keys)), 0)
             left_top = (int(bbox[0]) - 110, int(bbox[1]) + 25 + y_shift)
             right_bottom = (int(bbox[0]) - 10, int(bbox[1]) + 25 + y_shift + 25 * len(attri_keys))
             draw1.rectangle((left_top[0], left_top[1], right_bottom[0], right_bottom[1]), fill=(32, 32, 32))
             for j in xrange(len(attri_keys)):
                 draw1.text((left_top[0] + 5, left_top[1] + 2 + j * 25),
-                          '{}: {}'.format(attri_keys[j], objs[i]['attri'][attri_keys[j]]),
+                          '{}: {}'.format(attri_keys[j], objs[i]['attribute']['attri'][attri_keys[j]]),
                           fill=(255, 255, 255), font=FONT15)
 
     return np.array(Image.blend(vis, mask, alpha))
@@ -63,6 +65,8 @@ def draw_fancybbox(im, objs, max_obj=100, alpha=0.4, attri=False):
 def draw_fancybbox2(im, objs, max_obj=100, alpha=0.4, attri=False, line_factor=0.1):
     for i in xrange(min(len(objs), max_obj)):
         bbox = objs[i]['bbox']
+        color = objs[i]['attribute']['color']
+        class_name = objs[i]['attribute']['class_name']
         base_line = max(1, min(int(bbox[2] - bbox[0]), int(bbox[3] - bbox[1])))
         pts_left_top = np.array([[int(bbox[0]), int(bbox[1] + line_factor * base_line)],
                                  [int(bbox[0]), int(bbox[1])],
@@ -97,14 +101,14 @@ def draw_fancybbox2(im, objs, max_obj=100, alpha=0.4, attri=False, line_factor=0
                   '{:s} {:.3f}'.format(str(objs[i]['class_name']), objs[i]['score']),
                   fill=(255, 255, 255), font=FONT20)
         if attri:
-            attri_keys = objs[i]['attri'].keys()
+            attri_keys = objs[i]['attribute']['attri'].keys()
             y_shift = min(im.shape[0] - (int(bbox[1]) + 25 + 25 * len(attri_keys)), 0)
             left_top = (int(bbox[0]) - 110, int(bbox[1]) + 25 + y_shift)
             right_bottom = (int(bbox[0]) - 10, int(bbox[1]) + 25 + y_shift + 25 * len(attri_keys))
             draw.rectangle((left_top[0], left_top[1], right_bottom[0], right_bottom[1]), fill=(32, 32, 32))
             for j in xrange(len(attri_keys)):
                 draw.text((left_top[0] + 5, left_top[1] + 2 + j * 25),
-                          '{}: {}'.format(attri_keys[j], objs[i]['attri'][attri_keys[j]]),
+                          '{}: {}'.format(attri_keys[j], objs[i]['attribute']['attri'][attri_keys[j]]),
                           fill=(255, 255, 255), font=FONT15)
 
         im = np.array(Image.blend(vis, mask, alpha))
