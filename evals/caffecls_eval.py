@@ -25,6 +25,8 @@ parser.add_argument('--data_root', type=str, help='Path to imagenet validation',
                     default=ROOT_PTH + '/Database/ILSVRC2017')
 parser.add_argument('--val_file', type=str, help='val_file',    # 2015 for senet and inception-v3
                     default=ROOT_PTH + '/Program/caffe-model/cls/ILSVRC2012_val_norm.txt')
+parser.add_argument('--image_ext', type=str, default='', help='suffix of the images')
+parser.add_argument('--skip_num', type=int, default=0, help='skip_num for evaluation')
 parser.add_argument('--model_weights', type=str, help='model weights',
                     default=ROOT_PTH + '/Program/caffe-model/cls/resnet/resnet18-1x64d/resnet18-1x64d-merge.caffemodel')
 parser.add_argument('--model_deploy', type=str, help='model_deploy', 
@@ -33,7 +35,6 @@ parser.add_argument('--model_deploy', type=str, help='model_deploy',
 parser.add_argument('--ground_truth', type=bool, default=True, help='whether provide gt labels')
 parser.add_argument('--prob_layer', type=str, default='prob', help='prob layer name')
 parser.add_argument('--class_num', type=int, default=1000, help='predict classes number')
-parser.add_argument('--skip_num', type=int, default=0, help='skip_num for evaluation')
 parser.add_argument('--base_size', type=int, default=256, help='short size of images')
 parser.add_argument('--crop_size', type=int, default=224, help='crop size of images')
 parser.add_argument('--crop_type', type=str, default='center', choices=['center', 'multi'],
@@ -72,7 +73,7 @@ f = open(args.val_file, 'r')
 img_order = 0
 for _ in f:
     img_dict = dict()
-    img_dict['path'] = os.path.join(args.data_root + _.strip().split(' ')[0])
+    img_dict['path'] = os.path.join(args.data_root + _.strip().split(' ')[0] + args.image_ext)
     img_dict['evaluated'] = False
     img_dict['score_vec'] = []
     if args.ground_truth:
