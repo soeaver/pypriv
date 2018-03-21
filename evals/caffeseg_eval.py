@@ -25,6 +25,8 @@ parser.add_argument('--data_root', type=str, default=ROOT_PTH + '/Database/VOC_P
 parser.add_argument('--val_file', type=str,
                     default=ROOT_PTH + '/Database/VOC_PASCAL/SBD/segmentation_set/voc2012val.txt',
                     help='val_file')
+parser.add_argument('--image_ext', type=str, default='.jpg', help='suffix of the images')
+parser.add_argument('--skip_num', type=int, default=0, help='skip_num for evaluation')
 parser.add_argument('--model_weights', type=str,
                     default=ROOT_PTH + '/Program/caffe-model/seg/pspnet/models/pascal_voc/se-resnet50/sbd_voc2012train/psp_se-resnet50_sbd_voc2012train_iter_20000.caffemodel',
                     help='model weights')
@@ -36,7 +38,6 @@ parser.add_argument('--save_root', type=str, default='predict', help='whether sa
 
 parser.add_argument('--prob_layer', type=str, default='prob', help='prob layer name')
 parser.add_argument('--class_num', type=int, default=21, help='predict classes number')
-parser.add_argument('--skip_num', type=int, default=0, help='skip_num for evaluation')
 # parser.add_argument('--scales', type=int, nargs='+', default=[256, 384, 512, 640, 768, 1024], help='scales of image')
 parser.add_argument('--scales', type=int, nargs='+', default=[512, ], help='scales of image')
 parser.add_argument('--crop_size', type=int, default=512, help='crop size of images')
@@ -82,7 +83,7 @@ def eval_batch():
     eval_len = len(eval_images)
     start_time = datetime.datetime.now()
     for i in xrange(eval_len - args.skip_num):
-        im = cv2.imread('{}{}.jpg'.format(args.data_root, eval_images[i + args.skip_num]))
+        im = cv2.imread('{}{}{}'.format(args.data_root, eval_images[i + args.skip_num], args.image_ext))
         timer_pt1 = datetime.datetime.now()
         pre = SEG.eval_im(im)
         timer_pt2 = datetime.datetime.now()
