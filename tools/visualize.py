@@ -28,7 +28,7 @@ def draw_bbox(im, objs, max_obj=100, draw_text=True):
         class_name = objs[i]['attribute']['class_name']
         cv2.rectangle(im, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), objs[i]['color'], 2)
         if draw_text:
-            cv2.putText(im, '{:s} {:.3f}'.format(str(class_name), color),
+            cv2.putText(im, '{:s} {:.3f}'.format(str(class_name), objs[i]['bbox_confidence']),
                         (int(bbox[0] + 5), int(bbox[1] + 15)), CVFONT0, 0.5, color, thickness=1)
 
     return im
@@ -46,7 +46,7 @@ def draw_fancybbox(im, objs, max_obj=100, alpha=0.4, attri=False):
         draw1.rectangle((int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])), outline=tuple(color))
         draw2.rectangle((int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[1]) + 24), fill=tuple(color))
         draw2.text((int(bbox[0] + 5), int(bbox[1]) + 2),
-                   '{:s} {:.3f}'.format(str(class_name), color), fill=(255, 255, 255), font=FONT20)
+                   '{:s} {:.3f}'.format(str(class_name), objs[i]['bbox_confidence']), fill=(255, 255, 255), font=FONT20)
 
         if attri:
             attri_keys = objs[i]['attribute']['attri'].keys()
@@ -98,7 +98,7 @@ def draw_fancybbox2(im, objs, max_obj=100, alpha=0.4, attri=False, line_factor=0
                         int(bbox[2] - 5), int(bbox[1] + 30)),
                        fill=(32, 32, 32))
         draw.text((int(bbox[0] + 10), int(bbox[1]) + 7),
-                  '{:s} {:.3f}'.format(str(objs[i]['class_name']), objs[i]['score']),
+                  '{:s} {:.3f}'.format(str(objs[i]['class_name']), objs[i]['bbox_confidence']),
                   fill=(255, 255, 255), font=FONT20)
         if attri:
             attri_keys = objs[i]['attribute']['attri'].keys()
