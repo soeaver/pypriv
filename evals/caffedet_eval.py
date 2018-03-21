@@ -32,7 +32,7 @@ parser.add_argument('--data_root', type=str, default=ROOT_PTH + '/Database/Priv_
 parser.add_argument('--val_file', type=str,
                     default=ROOT_PTH + '/Database/Priv_personpart/ImageSets/privpersonpart_val.txt',
                     help='val_file')
-parser.add_argument('--suffix', type=str, default='.jpg', help='suffix of the images')
+parser.add_argument('--image_ext', type=str, default='.jpg', help='suffix of the images')
 parser.add_argument('--skip_num', type=int, default=0, help='skip_num for evaluation')
 parser.add_argument('--model_weights', type=str,
                     default=ROOT_PTH + '/Program/caffe-model/det/rfcn/models/priv_personpart/resnet18/ms-lighthead-ohem/rfcn-lighthead_ppp_resnet18-priv-merge_ms7-roi512_iter_100000.caffemodel',
@@ -92,7 +92,7 @@ def eval_batch():
 
     start_time = datetime.datetime.now()
     for i in xrange(eval_len - args.skip_num):
-        im = cv2.imread('{}{}{}'.format(args.data_root, eval_images[i + args.skip_num], args.suffix))
+        im = cv2.imread('{}{}{}'.format(args.data_root, eval_images[i + args.skip_num], args.image_ext))
         timer_pt1 = datetime.datetime.now()
         pre = DET.det_im(im)
         for _obj in pre:
