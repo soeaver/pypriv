@@ -92,3 +92,19 @@ def boxes_filter(dets, bbox_id=1, class_name='None', color=(255, 255, 255), scal
 
     return _objs
   
+    
+def objs_sort_by_center(objs, target=0):
+    """target=0, sort by x; target=1, sort by y;."""
+    sorted = []
+    centers = []
+    for i in objs:
+        if target == 0:
+            centers.append((i['bbox'][0] + i['bbox'][2]) / 2.0)
+        elif target == 1:
+            centers.append((i['bbox'][1] + i['bbox'][3]) / 2.0)
+    centers_idx = np.argsort(np.asarray(centers))
+
+    for i in centers_idx:
+        sorted.append(objs[i])
+        
+    return sorted
