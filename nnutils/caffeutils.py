@@ -11,8 +11,6 @@ import transforms as T
 import basicmath as M
 from misc import *
 
-sys.path.append(file_pth + '/../../../caffe-priv/python')  # path of py-RFCN-priv/caffe-priv/python
-sys.path.append(file_pth + '/../../')  # path of py-RFCN-priv/lib
 from utils.cython_bbox import bbox_overlaps
 from fast_rcnn.config import cfg
 
