@@ -88,7 +88,8 @@ def boxes_filter(dets, bbox_id=1, class_name='None', color=(255, 255, 255), scal
         if bbox[3] - bbox[1] <= min_size[0] or bbox[2] - bbox[0] <= min_size[1]:
             continue
         attribute = dict(class_name=class_name, color=color)
-        _objs.append(dict(bbox=bbox, bbox_id=bbox_id, bbox_confidence=bbox_confidence, attribute=attribute))
+        _objs.append(dict(bbox=bbox, bbox_id=bbox_id, bbox_confidence=bbox_confidence, keypoints=[],
+                          attribute=attribute, person_id=-1, person_confidence=-1, segment=[]))
 
     return _objs
   
