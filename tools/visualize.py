@@ -34,7 +34,7 @@ def draw_bbox(im, objs, max_obj=100, draw_text=True):
     return im
 
 
-def draw_fancybbox(im, objs, max_obj=100, alpha=0.4, attri=False):
+def draw_fancybbox(im, objs, max_obj=100, alpha=0.4, attri=None):
     vis = Image.fromarray(im)
     draw1 = ImageDraw.Draw(vis)
     mask = Image.fromarray(im.copy())
@@ -49,15 +49,16 @@ def draw_fancybbox(im, objs, max_obj=100, alpha=0.4, attri=False):
                    '{:s} {:.3f}'.format(str(class_name), objs[i]['bbox_confidence']), fill=(255, 255, 255), font=FONT20)
 
         if attri:
-            attri_keys = objs[i]['attribute']['attri'].keys()
-            y_shift = min(im.shape[0] - (int(bbox[1]) + 25 + 25 * len(attri_keys)), 0)
+            y_shift = min(im.shape[0] - (int(bbox[1]) + 25 + 25 * len(attri)), 0)
             left_top = (int(bbox[0]) - 110, int(bbox[1]) + 25 + y_shift)
-            right_bottom = (int(bbox[0]) - 10, int(bbox[1]) + 25 + y_shift + 25 * len(attri_keys))
+            right_bottom = (int(bbox[0]) - 10, int(bbox[1]) + 25 + y_shift + 25 * len(attri))
             draw1.rectangle((left_top[0], left_top[1], right_bottom[0], right_bottom[1]), fill=(32, 32, 32))
-            for j in xrange(len(attri_keys)):
-                draw1.text((left_top[0] + 5, left_top[1] + 2 + j * 25),
-                          '{}: {}'.format(attri_keys[j], objs[i]['attribute']['attri'][attri_keys[j]]),
-                          fill=(255, 255, 255), font=FONT15)
+            for j in xrange(len(attri)):
+                try:
+                    draw1.text((left_top[0] + 5, left_top[1] + 2 + j * 25), '{}: {}'.
+                               format(attri[j], objs[i]['attribute'][attri[j]]), fill=(255, 255, 255), font=FONT20)
+                except:
+                    pass
 
     return np.array(Image.blend(vis, mask, alpha))
 
