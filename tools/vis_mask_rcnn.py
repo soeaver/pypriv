@@ -218,7 +218,7 @@ def vis_keypoints(img, kps, kp_thresh=2, alpha=0.7):
     """Visualizes keypoints (adapted from vis_one_image).
     kps has shape (4, #keypoints) where 4 rows are (x, y, logit, prob).
     """
-    dataset_keypoints, _ = keypoint_utils.get_keypoints()
+    dataset_keypoints, _ = get_keypoints()
     kp_lines = kp_connections(dataset_keypoints)
 
     # Convert from plt 0-1 RGBA colors to 0-255 BGR colors for opencv.
