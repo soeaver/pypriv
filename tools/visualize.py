@@ -15,7 +15,7 @@ CVFONT0 = cv2.FONT_HERSHEY_SIMPLEX
 CVFONT1 = cv2.FONT_HERSHEY_PLAIN
 
 
-def draw_str(dst, (x, y), s):
+def draw_str(dst, x, y, s):
     cv2.putText(dst, s, (x + 1, y + 1), CVFONT1, 1.0, (0, 0, 0), thickness=2, lineType=cv2.LINE_AA)
     cv2.putText(dst, s, (x, y), CVFONT1, 1.0, (255, 255, 255), lineType=cv2.LINE_AA)
 
